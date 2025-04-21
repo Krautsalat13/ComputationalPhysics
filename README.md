@@ -12,9 +12,6 @@ A collection of numerical simulations in Computational Physics, exploring system
 | [molecular-dynamics](./Molecular-Dynamics) | Models particle motion and interactions using molecular dynamics. Results are compared for different numerical algorithms: Euler, Euler-Cromer, and Velocity-Verlet. |
 | [electrodynamics-yee](./Electrodynamics) | Simulates 1D electromagnetic wave propagation using the Yee algorithm (FDTD). |
 | [diffusion-equation](./Diffusion-Equation) | Solves the 1D diffusion equation using the second-order Product Formula approach. |
-| [schrodinger-equation](./Schroedinger-Equation) | Solves the time-dependent Schrödinger equation for:
-   - **Particle Impinging on a Potential Barrier (Quantum Tunneling)**.
-   - **1D Harmonic Oscillator**.
-   - Uses the second-order Product Formula approach for time integration. |
+| [schrodinger-equation](./Schroedinger-Equation) | Solves the time-dependent Schrödinger equation for: - **Particle Impinging on a Potential Barrier (Quantum Tunneling)**. - **1D Harmonic Oscillator**. - Uses the second-order Product Formula approach for time integration. |
 
 ---
