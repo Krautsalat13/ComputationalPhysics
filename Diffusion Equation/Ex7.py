@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Jun 18 16:23:33 2023
+
+@author: fynn@tamilarasan
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+import csv
+from numba import njit, vectorize, float64
+import os 
+os.environ["PATH"] += os.pathsep + '/Library/TeX/texbin'
+
+plt.rcParams["text.usetex"] = True
+plt.rcParams["font.family"] = "times new roman"
+plt.rcParams["font.size"] = "18"
+
+pi      = np.pi  
+rand    = np.random
+
+rand.seed(1069)
+
+N = 1
+L = 1001
+D = 1
+Delta = 0.1
+m = 1
+start  = (L+1)//2+1
+#start  = 0
+alpha = -D*Delta**(-2)
+tau  = 0.001
+t = 10
+
+
+
+eB = 1/2 * np.array([[1+np.exp(2*alpha*tau/m),1-np.exp(2*alpha*tau/m)],[1-np.exp(2*alpha*tau/m),1+np.exp(2*alpha*tau/m)]])
+
+eA2 = 1/2 * np.array([[1+np.exp(alpha*tau/m),1-np.exp(alpha*tau/m)],[1-np.exp(alpha*tau/m),1+np.exp(alpha*tau/m)]])
+
+c = np.exp(tau*alpha)
+c2 = np.exp(tau*alpha/2)
+Phi = np.zeros(L)
+Phi[start] = N
+
+
+@njit
+def dt(Phi):
+    for i in range(m):
+        for k in range(0,len(Phi)-1,2):
+            if (k ==0):
+                Phi[-1] = c*Phi[-1]
+            Phi[k:k+2] = np.dot(eA2,Phi[k:k+2])
+        for k in range(0,len(Phi)-1,2):
+            if (k ==0):
+                Phi[0] = c*Phi[0]
+            Phi[k+1:k+3] = np.dot(eB,Phi[k+1:k+3])
+        for k in range(0,len(Phi)-1,2):
+            Phi[k:k+2] = np.dot(eA2,Phi[k:k+2])
+            if (k ==0):
+                Phi[-1] = c2*Phi[-1]
+    return Phi
+
+@njit  
+def x_mean_p(p, phi, i0):
+    i_arr   = np.arange(1, L+1)
+    return np.sum((i_arr-i0)**int(p)/np.sum(phi) *phi)
+
+@njit
+def var(phi, i0):
+    return x_mean_p(2, phi, i0) - x_mean_p(1, phi, i0)**2
+
+
+vari = [var(Phi,start)]
+T = np.linspace(0,int(t),int(t/tau)+1)
+
+x = np.arange(len(Phi))
+plt.plot(x,Phi)
+plt.show()
+
+for i in range(int(t/tau)):
+    Phi = dt(Phi)
+    vari += [var(Phi,start)]
+    if (i%(int(t/tau)//10) == 0):
+        plt.plot(x,Phi)
+        plt.xlim(0,20)
+        plt.ylim(0,1)
+        plt.show()
+        print(i//1000)
+
+
+plt.plot(T,vari)
+
+
+

@@ -1,0 +1,124 @@
+\clearpage
+\section{Theoretical Framework}
+\label{sec: theo}
+In this section, we govern the theory behind the system. Having a particle in a harmonic potential, we are interested in the time evolution of the particle's mean position $\braket{x(t)}$ and variance $\text{Var}(x(t))$.
+Setting $m = 1$ and $\hbar = 1$, the \SG equation in position space for a harmonic potential is given by
+\begin{align}
+	i\pt{t} \Phi(x,t) &= \left(-{1\over 2} \ptt{x} + {\Omega ^2 \over 2} x^2\right)  \Phi(x,t) \label{eq: SG}\\
+	\intertext{Or in a more general description, by}
+	\hat{H}\ket{\Phi(t)} &= \left({\hat{p}^2\over 2} + {\Omega ^2 \over 2} \hat{x}^2 \right) \ket{\Phi(t)}.
+	\label{eq: SG gen}
+\end{align}
+Initially, at $t=0$, the wavepacket is described via
+\begin{equation}
+	\braket{x |\Phi(t)} = \Phi (x, t = 0) = \Phi _0= \left({1\over {\sqrt{\pi \sigma^2}}}\right)^{1\over 2}e^{-{(x-x_0)^2 \over 2\sigma^2}},
+	\label{eq: initial}
+\end{equation}
+a gaussian wavepacket of width ${\sigma\over\sqrt{2}}$ centered around $x_0$.
+We focus ourselves on the calculation of $\braket{x(t)}$ and $\braket{x^2(t)}$. For that, we make use of the \textit{Ehrenfest Theorem}:
+\begin{equation}
+	\dt{\hat{O}} = {1 \over i} \comu{\hat{O}}{\hat{H}} +\left\langle{ \partial \hat{O} \over \partial t}\right\rangle.
+	\label{eq: ET}
+\end{equation}
+The position operator $\hat{x}$ and momentum operator $\hat{p}$ do not depend on time, such that the derivative on the RHS vanishes.
+In general, the average of an operator $\braket{O}$ can be calculated using
+\begin{equation}
+	\braket{O} = \braket{\Phi(t)|\hat{O}|\Phi(t)} =\Int{\Phi ^*(x,t) O \Phi(x,t)}.
+	\label{eq: scalar}
+\end{equation}
+In the following derivation, we make use of the three commutator relations
+\begin{equation}
+	[\hat{x},\hat{p}] = i, \qquad 	[\hat{x},\hat{p}^2] = 2i\hat{p}, \qquad 	[\hat{x}^2,\hat{p}] = 2i\hat{x}, 
+\end{equation}
+and the fact that $[\hat{x},\hat{x}] = [\hat{p},\hat{p}] = 0$.
+Starting with the Ehrenfest theorem for both the position and momentum operator, with our definition for $\hat{H}$ from \refEq{eq: SG gen}, we obtain
+\begin{align}
+	\dt{\hat{x}} &= {1 \over i} \comu{\hat{x}}{\hat{H}} = {1\over 2i} \braket{[\hat{x},\hat{p}^2]} = \braket{\hat{p}} \label{eq: dtx = p}\\
+	\intertext{and}
+	\dt{\hat{p}} &= {1 \over i} \comu{\hat{p}}{\hat{H}} = {\Omega ^2\over 2i} \braket{[\hat{p},\hat{x}^2]} = - \Omega ^2\braket{\hat{x}}. \\
+	\intertext{Taking another time derivative of $\dt{\hat{x}}$, we have} 
+	\dtt{\hat{x}}&= \dt{\hat{p}} \qquad \Rightarrow \qquad \dtt{\hat{x}} = - \Omega ^2\braket{\hat{x}}.
+\end{align}
+The second-order differential equation above can be solved with the ansatz
+\begin{align*}
+	&\braket{x(t)} = +A\cos(\Omega t) + B\sin(\Omega t)\\
+		\text{from \refEq{eq: dtx = p}}\Rightarrow &\braket{p(t)} = -A\Omega\sin(\Omega t) + B\Omega\cos(\Omega t).
+\end{align*}
+According to \refEq{eq: scalar}, the mean initial position $\braket{x}|_{t=0}$ and momentum $\braket{p}|_{t=0}$ is, 
+\begin{align*}
+	\braket{x(t)}\Big|_{t=0} & = \Int{x|\Phi _0|^2} = x_0\\
+	\braket{p(t)}\Big|_{t=0} & = \Int{\Phi _0^* {1\over i }\pt{x}\Phi _0 } = 0.
+\end{align*}
+With these initial conditions, we have conditions governing $A$ and $B$.
+Inserting them into our ansatz, we are left with
+\begin{align*}
+	&\braket{x(0)} = A = x_0 \quad \text{and} \quad \braket{p(0)} =  B\Omega= 0,
+\end{align*}
+such that
+\begin{equation}
+	\braket{x(t)} = x_0 \cos(\Omega t).
+	\label{eq: x sol}
+\end{equation}
+
+
+Now, we dedicate ourselves to the calculation of $\braket{x^2(t)}$. Again, from the Ehrenfest theorem in \refEq{eq: ET}
+\begin{align}
+	\dt{\hat{x}^2} &= {1\over i}\comu{\hat{x}^2}{\hat{H}} = {1\over 2 i}\comu{\hat{x}^2}{\hat{p}^2} = \braket{\hat{x}\hat{p}+\hat{p}\hat{x}} =2 \braket{\hat{x}\hat{p}} -i \label{eq: dtxx}\\
+	\dt{\hat{x}\hat{p}} &= {1\over i}\comu{\hat{x}\hat{p}}{\hat{H}} = {1\over i}\braket{\hat{x}[\hat{p},\hat{H}]+[\hat{x},\hat{H}]\hat{p}} = \braket{\hat{p}^2}- \Omega ^2\braket{\hat{x}^2}.
+	\label{eq: dtxp}
+\end{align}
+To obtain a term for $\brs{p}$, we use the 
+\begin{align}
+\text{from \refEq{eq: SG gen}}	\Rightarrow \br{H} &= {\brs{p} \over 2} + {\Omega^2 \over 2} \brs{x}\nonumber \\
+	\Leftrightarrow \brs{p} &= 2\br{H} -\Omega^2 \brs{x},\nonumber
+\end{align}
+such that \refEq{eq: dtxp} changes to
+\begin{align}
+	\dt{\hat{x}\hat{p}} &= 2\br{H}- 2\Omega ^2\braket{\hat{x}^2}. \label{eq: dt xp = 2H}\\
+	\intertext{After taking another time derivative of the term in \refEq{eq: dtxx}, we insert the \refEq{eq: dt xp = 2H}, such that}
+	\dtt{\hat{x}^2} &=  4\br{H}- 4\Omega ^2\braket{\hat{x}^2} \nonumber\\
+	&= {4\Omega ^2}\left({\br{H}\over \Omega ^2} -\brs{x} \right).\label{eq: ddxx = eq}
+\intertext{With no explicit time dependence in the Hamiltonian (see \refEq{eq: SG gen}), we deduct the total conservation of the energy of the system, which is why $ \br{H} = \braket{H(t=0)}$. Hence, \refEq{eq: ddxx = eq} equals a second-order differential equation with a constant for which we make the ansatz}
+\braket{x^2(t)} &= A\cos(2\Omega t) + B\sin(2\Omega t) + C. \label{eq: xx ansatz}
+\intertext{The factor $2\Omega$ comes from the $4\Omega^2 = (2\Omega)^2$ in \refEq{eq: ddxx = eq}. Inserting our ansatz into \refEq{eq: ddxx = eq} and keeping in mind the conservation of energy, we have}
+&\qquad C = {\braket{H(t=0)}\over \Omega ^2} \nonumber \\
+&\qquad \ \ = {1\over \Omega^2} \left( \braket{p^2(0)}- \Omega ^2\braket{x^2(0)} \right).
+\label{eq: C=}
+\end{align}
+Again, for the calculation of the constants $A$, $B$ and $C$, we need to calculate the following initial values according to \refEq{eq: scalar}
+\begin{align}
+	\braket{x^2(t)}|_{t = 0} &  = \Int{x^2|\Phi _0|^2} \qquad ={1\over 2} \left( \sigma^2 +2x_0^2\right)\\
+	\braket{p^2(t)}|_{t = 0} &= \Int{\Phi _0^* {1\over i^2 }\ptt{x}\Phi _0 } = {1\over 2\sigma^2}\\
+	\braket{(xp) (t)}|_{t = 0} & = \Int{x\Phi _0^* {1\over i }\pt{x}\Phi _0 } = {i\over 2}. \label{eq: xp0}
+\end{align}
+With \refEq{eq: xp0}, \refEq{eq: C=} rewrites as
+\begin{align}
+	C = {1\over 4\Omega ^2 \sigma^2} +{1\over 4}\left(\sigma^2 +2x_0^2\right). 
+\end{align}
+With the initial condition for $\braket{x^2(t)}|_{t = 0}$, inserted into \refEq{eq: xx ansatz}, we have
+\begin{align}
+	\braket{x^2(t)}|_{t = 0} = {1\over 4\Omega ^2 \sigma^2} +{1\over 4}\left(\sigma^2 +2x_0^2\right) + A &= {1\over 2}\left(\sigma^2 +2x_0^2\right) \nonumber\\ 
+	{1\over 4\Omega ^2 \sigma^2} -{1\over 4}\left(\sigma^2 +2x_0^2\right) &= A.
+\end{align}
+Lastly, \refEq{eq: xp0} can be inserted into \refEq{eq: dtxx}, such that
+\begin{align}
+	\dt{x^2}\Big|_{t=0} &= 2 \braket{xp}\Big|_{t=0} -i = 0.\nonumber
+	\intertext{And thus}
+	0 &= 2\Omega B\qquad \Rightarrow \qquad B = 0.
+\end{align}
+Summarizing the results for $A$, $B$ and $C$, we have
+\begin{equation}
+	\braket{x^2(t)} = \left({1\over 4\Omega ^2 \sigma^2} +{1\over 4}\left(\sigma^2 +2x_0^2\right)\right) + \left( {1\over 4\Omega ^2 \sigma^2} -{1\over 4}\left(\sigma^2 +2x_0^2\right)\right)\cos(2\Omega t),\nonumber
+\end{equation}
+{or rearranging the terms and using trigonometric identities, we are left with}
+\begin{equation}
+	\braket{x^2(t)}= {1\over 2\Omega ^2 \sigma^2}\sin^2(\Omega t) +{1\over 2}\left(\sigma^2 +2x_0^2\right)\cos ^2(\Omega t).
+\end{equation}
+From the latter expression, and from \refEq{eq: x sol}, the variance can be calculated:
+\begin{align}
+	\text{Var}(x) &= \braket{x^2(t)} - \braket{x(t)}^2 \label{eq: var}\\
+	& = {1\over 2\Omega ^2 \sigma^2}\sin^2(\Omega t) +{1\over 2}\sigma^2\cos ^2(\Omega t).
+	\label{eq: xx sol}
+\end{align}
+
+
