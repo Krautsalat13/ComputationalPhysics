@@ -1,0 +1,7 @@
+\babel@toc {english}{}\relax 
+\contentsline {section}{\numberline {1}Introduction}{1}{}%
+\contentsline {section}{\numberline {2}Simulation Model and Method}{2}{}%
+\contentsline {section}{\numberline {3}Results}{4}{}%
+\contentsline {subsection}{\numberline {3.1}The Thin Glass Plate}{4}{}%
+\contentsline {subsection}{\numberline {3.2}The Thick Glass Plate}{6}{}%
+\contentsline {section}{\numberline {4}Discussion}{8}{}%
