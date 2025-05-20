@@ -1,6 +1,6 @@
 # Computational Physics
 
-A collection of numerical simulations in Computational Physics, exploring systems in statistical mechanics, classical and quantum dynamics, and electromagnetism. Each project folder includes source code, figures, and explanatory documentation.
+A collection of numerical simulations in Computational Physics, exploring systems in statistical mechanics, classical and quantum dynamics, and electromagnetism. Each project folder includes source code, figures, and explanatory report.
 
 ---
 
