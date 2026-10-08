@@ -24,18 +24,18 @@ Separately, as a check, $10^4$ particles perform independent unbiased random wal
 Starting from a sharp spike at the centre, the density spreads out into the usual
 diffusive (Gaussian) shape:
 
-![Density profile N(x,t) spreading over time](Plots/Phi_501.png)
+![Density profile N(x,t) spreading over time](Plots/profile_centre.png)
 
 The characteristic feature of diffusion is that the variance grows linearly in
 time, with slope $2D/\Delta^2 = 200$. The product-formula solver gives a slope of
 $199.34$, so under 0.5 % off:
 
-![Variance vs time, slope 199.34](Plots/var_501.png)
+![Variance vs time, slope 199.34](Plots/variance_centre.png)
 
 The random walk gives the same linear growth independently, which confirms that
 the microscopic and continuum descriptions line up:
 
-![Random-walk variance vs the diffusion-equation theory](Plots/task2.png)
+![Random-walk variance vs the diffusion-equation theory](Plots/random_walk.png)
 
 So the second-order splitting scheme hits the variance to better than a percent,
 and the random walk reproduces the same continuum law from the particle picture.
@@ -43,12 +43,12 @@ and the random walk reproduces the same continuum law from the particle picture.
 ## Running it
 
 ```bash
-python DE_1.py     # product-formula solver -> Data/, Plots/
-python DE_2.py     # random-walk check      -> Plots/
+python product_formula.py   # product-formula solver -> Data/, Plots/
+python random_walk.py       # random-walk check      -> Plots/
 ```
 
-- `DE_1.py` — product-formula PDE solver (uses Numba)
-- `DE_2.py` — random-walk check
+- `product_formula.py` — product-formula PDE solver (uses Numba)
+- `random_walk.py` — random-walk check
 - `Data/` — stored variance arrays
 - `Plots/` — output figures
 

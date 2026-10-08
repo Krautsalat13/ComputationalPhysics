@@ -11,7 +11,7 @@ initial condition, plots the density profile N(x,t), and checks that the
 variance grows linearly in time with the expected slope 2D/Delta^2.
 
 Outputs: variance arrays to ``Data/``, figures to ``Plots/``.
-Run from the project folder:  ``python DE_1.py``
+Run from the project folder:  ``python product_formula.py``
 """
 
 import numpy as np
@@ -130,28 +130,27 @@ def solve_product(m, i0):
     return var_arr
 
 
-# Do the plots
-def plot_var(i0, m):
+# Plot the variance growth for one initial condition (label: "centre"/"boundary").
+def plot_variance(i0, m, label):
     t       = np.linspace(0, m*tau, m+1)
     var_arr = solve_product(m, i0)
 
     slope = (var_arr[-1]-var_arr[0])/(t[-1]-t[0])
 
-    np.save(f"Data/var_{i0}.npy", var_arr)
+    np.save(f"Data/variance_{label}.npy", var_arr)
     setup(" ", "time t", r"$\Delta^{-2}$ var($x(t)$)")
     plt.plot(t, var_arr, lw=5, color=Color("RWTH"), label="simulation")
     plt.plot(t, slope*t, lw=3, ls="--", color="black", label=f"slope = {slope:.2f}")
     plt.legend()
-    plt.savefig(f"Plots/var_{i0}.png", dpi=150, bbox_inches="tight")
+    plt.savefig(f"Plots/variance_{label}.png", dpi=150, bbox_inches="tight")
     plt.close()
 
-# Similar function to solve_product(m, i0)
-# Here we do plots of the array Phi vs. x 
-def plot_N(m, i0):
+# Plot the density profile N(x, t) at a few times for one initial condition.
+def plot_profile(m, i0, label):
     x           = np.arange(L)+1
     Phi0        = np.zeros(L)
     Phi0[i0-1]  = 1
-    
+
     setup(" ", "position $x$", r"$N(x, t)$")
     plt.ylim(0,1)
     temp = Phi0
@@ -164,8 +163,8 @@ def plot_N(m, i0):
         temp = Phi_A2(temp)
         temp = Phi_B(temp)
         temp = Phi_A2(temp)
-    
-    if i0==501:
+
+    if label == "centre":
         plt.xlim(486, 516)      # zoom on the spreading peak centred at x=501
     else:
         plt.xlim(1, 14)         # boundary start: show the decaying profile
@@ -173,7 +172,7 @@ def plot_N(m, i0):
     plt.gca().xaxis.set_major_locator(MaxNLocator(nbins=6, prune="lower"))
 
     plt.legend()
-    plt.savefig(f"Plots/Phi_{i0}.png", dpi=150, bbox_inches="tight")
+    plt.savefig(f"Plots/profile_{label}.png", dpi=150, bbox_inches="tight")
     plt.close()
 
 # Define initial condition
@@ -186,9 +185,9 @@ m = 10000
 # time for the other plots
 m2 = 60
 
-# Generate plots
-plot_var(i01, m)
-plot_var(i02, m)
+# Generate plots. i01 is the centre of the chain, i02 is the boundary.
+plot_variance(i01, m, "centre")
+plot_variance(i02, m, "boundary")
 
-plot_N(m2, i01)
-plot_N(m2, i02)
+plot_profile(m2, i01, "centre")
+plot_profile(m2, i02, "boundary")

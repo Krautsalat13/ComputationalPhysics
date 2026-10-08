@@ -23,18 +23,18 @@ curves that actually follow the exact Onsager result:
   * The five possible Boltzmann factors are precomputed per temperature, so the
     inner loop never calls exp().
 
-Data is written to ``Data/2D/`` as ``2D_{U,C,M}_{N}N_{Ns}NS_{free,per}.npy``.
-``IM.py`` in the project root reads those files and plots them against the exact
+Data is written to ``Data/`` as ``2D_{U,C,M}_{N}N_{Ns}NS_{free,per}.npy``.
+``plot_2d.py`` in the project root reads those files and plots them against the exact
 theory.
 
-Run from the project root:  ``python 2D/Code_4_2D.py``  (takes a few minutes).
+Run from the project root:  ``python ising_2d.py``  (takes a few minutes).
 """
 import time
 import numpy as np
 from numba import njit
 
 
-# Temperature grid. Kept the same in IM.py so the data and the theory line up.
+# Temperature grid. Kept the same in plot_2d.py so the data and theory line up.
 # A bit denser than a plain coarse grid so the specific-heat peak near
 # T_c ~ 2.269 is actually resolved.
 T_GRID = np.linspace(0.2, 4.0, 40)
@@ -164,9 +164,9 @@ def gen_data():
             for name, periodic in boundaries:
                 t0 = time.time()
                 U, C, M = run_curve(N, n_measure, periodic)
-                np.save(f"Data/2D/2D_U_{N}N_{n_measure}NS_{name}.npy", U)
-                np.save(f"Data/2D/2D_C_{N}N_{n_measure}NS_{name}.npy", C)
-                np.save(f"Data/2D/2D_M_{N}N_{n_measure}NS_{name}.npy", M)
+                np.save(f"Data/2D_U_{N}N_{n_measure}NS_{name}.npy", U)
+                np.save(f"Data/2D_C_{N}N_{n_measure}NS_{name}.npy", C)
+                np.save(f"Data/2D_M_{N}N_{n_measure}NS_{name}.npy", M)
                 print(f"N={N:3d}  Ns={n_measure:5d}  {name:4s}  "
                       f"({time.time()-t0:.1f}s)")
 

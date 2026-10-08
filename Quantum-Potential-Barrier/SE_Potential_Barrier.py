@@ -9,11 +9,11 @@ step is split into kinetic sub-steps acting on neighbouring pairs of grid
 points (K1 on even pairs, K2 on odd pairs) and a diagonal potential step (V),
 applied symmetrically so the scheme is second-order accurate and unitary.
 
-Two systems are selected with the ``task`` flag:
-  * task = 0 - free particle (no potential), and
-  * task = 1 - square potential barrier V = 2 on 50 <= x <= 50.5, higher than
-               the packet's mean energy, so part of the packet tunnels through
-               and part is reflected.
+Two systems are selected with the ``barrier`` flag:
+  * barrier = False - free particle (no potential), and
+  * barrier = True  - square potential barrier V = 2 on 50 <= x <= 50.5, higher
+               than the packet's mean energy, so part of the packet tunnels
+               through and part is reflected.
 
 Snapshots of the wavefunction are written to ``Data/`` and probability-density
 figures to ``Plots/``.  Run from the project folder:
@@ -62,7 +62,7 @@ rand    = np.random
 sigma = 3           # width of the initial Gaussian wave packet
 q = 1               # central wavenumber (sets the packet's momentum)
 x0 = 20             # initial centre of the packet
-task = 1            # 0 = free particle, 1 = square potential barrier
+barrier = True      # False = free particle, True = square potential barrier
 Delta = 0.1         # spatial grid spacing
 L = 1001            # number of grid points (domain 0..100)
 tau = 0.001         # time step
@@ -70,6 +70,8 @@ m = 50000           # number of time steps
 # cos/sin entries of the 2x2 kinetic propagator for one pair of grid points
 c = np.cos(tau/(4*Delta**2))
 s = 1j*np.sin(tau/(4*Delta**2))
+# short label used in the output file names
+system = "barrier" if barrier else "free"
 
 @njit
 def Phi0(x):
@@ -79,13 +81,12 @@ x = np.linspace(0,100,L)
 
 @njit
 def V(x):
-    if task == 0:
+    if not barrier:
         return 0
-    if task == 1:
-        if 50<= x<= 50.5:
-            return 2
-        else:
-            return 0
+    if 50<= x<= 50.5:
+        return 2
+    else:
+        return 0
 
 Vvec= np.vectorize(V)    
 Phi = np.array(Phi0(x)).astype(np.complex128)
@@ -135,11 +136,11 @@ for i in range(m):
         plt.xlim(0,100)
         plt.locator_params(nbins=8)
         plt.grid()
-        if task ==1:
+        if barrier:
             plt.axvspan(50, 50.5, alpha=0.5, color="tab:green")
         plt.ylim(0,0.008)
-        np.save(f"Data/TDSE_task{task}_times{int(i*tau)}.npy", Phi)
-        plt.savefig(f"Plots/TDSE_task{task}_times{int(i*tau)}.png", dpi=150, bbox_inches="tight")
+        np.save(f"Data/TDSE_{system}_times{int(i*tau)}.npy", Phi)
+        plt.savefig(f"Plots/TDSE_{system}_times{int(i*tau)}.png", dpi=150, bbox_inches="tight")
         plt.close()
         print(i)
     Phi = dt(Phi)
@@ -149,9 +150,9 @@ Psum +=[np.sum(P[506:])]
 Ptot +=[np.sum(P)]
 
 # Save the transmitted- and total-probability time series. The "with"/"without"
-# suffix refers to the presence of the barrier (task 1 vs task 0); plot_results.py
-# reads these back to plot the transmitted probability versus time.
-suffix = "with" if task == 1 else "without"
+# suffix refers to the presence of the barrier; plot_results.py reads these back
+# to plot the transmitted probability versus time.
+suffix = "with" if barrier else "without"
 np.save(f"Data/Psum_{suffix}.npy", np.array(Psum))
 np.save(f"Data/Ptot_{suffix}.npy", np.array(Ptot))
 
@@ -162,9 +163,9 @@ plt.xlabel("x")
 plt.ylabel("P(x,t)")
 plt.title(f"final state, t = {m*tau}")
 plt.xlim(0, 100)
-if task == 1:
+if barrier:
     plt.axvspan(50, 50.5, alpha=0.5, color="tab:green")
 plt.ylim(0, 0.015)
 plt.grid()
-plt.savefig(f"Plots/TDSE_task{task}_final.png", dpi=150, bbox_inches="tight")
+plt.savefig(f"Plots/TDSE_{system}_final.png", dpi=150, bbox_inches="tight")
 plt.close()

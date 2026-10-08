@@ -5,8 +5,8 @@
 ``SE_Potential_Barrier.py`` runs the (expensive) time-dependent Schrodinger
 solver and stores the complex wavefunction Phi(x, t) under ``Data/`` at a set
 of times, for two systems:
-  * task 0 - free particle (no potential), and
-  * task 1 - square potential barrier at 50 <= x <= 50.5.
+  * free    - free particle (no potential), and
+  * barrier - square potential barrier at 50 <= x <= 50.5.
 
 This script loads those snapshots and plots the probability density
 P(x,t) = |Phi|^2 * Delta, so the figures can be regenerated instantly without
@@ -63,16 +63,16 @@ x = np.linspace(0, 100, L)
 barrier = (50.0, 50.5)          # location of the square barrier
 
 
-def density(task, time):
-    """Load Phi(x, time) for the given task and return P = |Phi|^2 * Delta."""
-    phi = np.load(f"Data/TDSE_task{task}_times{time}.npy")
+def density(system, time):
+    """Load Phi(x, time) for the given system and return P = |Phi|^2 * Delta."""
+    phi = np.load(f"Data/TDSE_{system}_times{time}.npy")
     return np.abs(phi) ** 2 * Delta
 
 
-def plot_snapshots(task, title, outfile, times=(0, 15, 30, 45), show_barrier=False):
+def plot_snapshots(system, title, outfile, times=(0, 15, 30, 45), show_barrier=False):
     plt.figure(figsize=(10, 6))
     for c, t in zip(SIM_COLORS, times):
-        plt.plot(x, density(task, t), lw=1.6, color=c, label=f"$t = {t}$")
+        plt.plot(x, density(system, t), lw=1.6, color=c, label=f"$t = {t}$")
     if show_barrier:
         plt.axvspan(*barrier, color="tab:green", alpha=0.4, label="barrier")
     plt.xlabel("position $x$")
@@ -86,11 +86,11 @@ def plot_snapshots(task, title, outfile, times=(0, 15, 30, 45), show_barrier=Fal
 
 
 # Free particle: the packet travels to the right and spreads.
-plot_snapshots(0, "Free wave packet (no barrier)",
+plot_snapshots("free", "Free wave packet (no barrier)",
                "Plots/free_particle.png")
 
 # With the barrier: the packet partly reflects and partly tunnels through.
-plot_snapshots(1, "Wave packet meeting a square barrier",
+plot_snapshots("barrier", "Wave packet meeting a square barrier",
                "Plots/tunnelling.png", show_barrier=True)
 
 # Transmitted probability (fraction of the packet beyond the barrier) vs time.

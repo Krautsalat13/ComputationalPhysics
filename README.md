@@ -33,7 +33,7 @@ plate, including what happens when the Courant stability limit is broken.
 A second-order product-formula solver for the diffusion equation, checked against
 a random walk.
 
-[<img src="./Diffusion-Equation/Plots/var_501.png" width="420" alt="Variance growth in diffusion">](./Diffusion-Equation)
+[<img src="./Diffusion-Equation/Plots/variance_centre.png" width="420" alt="Variance growth in diffusion">](./Diffusion-Equation)
 
 ### [Quantum Harmonic Oscillator](./Quantum-Harmonic-Oscillator)
 Time-dependent Schrödinger equation for a Gaussian packet in a harmonic well.

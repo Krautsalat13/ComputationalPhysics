@@ -52,6 +52,6 @@ python SE_Potential_Barrier.py    # the full (slow) solver -> Data/, Plots/
 - `Plots/` — output figures
 
 The solver stores snapshots in `Data/`, so `plot_results.py` reproduces the figures
-without the 50 000-step run. Set the `task` flag in `SE_Potential_Barrier.py` to 0
-(free) or 1 (barrier). Dependencies: `numpy`, `matplotlib`, `numba` (see
-`requirements.txt` in the repo root).
+without the 50 000-step run. Set the `barrier` flag in `SE_Potential_Barrier.py` to
+`False` (free particle) or `True` (barrier). Dependencies: `numpy`, `matplotlib`,
+`numba` (see `requirements.txt` in the repo root).

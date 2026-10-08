@@ -4,7 +4,7 @@
 
 ``QHO.py`` runs the (expensive) time evolution and stores the probability
 density |Phi(x,t)|^2 at times t = 0, 2, 4, 6, 8, 10 for several parameter
-sets under ``Data/`` (file name pattern ``tami_t{t}_params{Omega}{sigma}{x0}``).
+sets under ``Data/`` (file name pattern ``t{t}_params{Omega}{sigma}{x0}``).
 
 This script simply loads those snapshots and draws the probability density
 P(x,t) = |Phi|^2 * Delta against position for a chosen parameter set, so the
@@ -63,7 +63,7 @@ def plot_evolution(params, title, outfile, xlim=(-6, 6)):
     """Plot |Phi|^2 * Delta at each stored time for one parameter set."""
     plt.figure(figsize=(10, 6))
     for c, t in zip(SIM_COLORS, times):
-        P = np.load(f"Data/tami_t{t}_params{params}.npy")
+        P = np.load(f"Data/t{t}_params{params}.npy")
         plt.plot(x, P * Delta, lw=1.6, color=c, label=f"$t = {t}$")
     plt.xlabel("position $x$")
     plt.ylabel(r"probability $|\Phi|^2\,\Delta$")

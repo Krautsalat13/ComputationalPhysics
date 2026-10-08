@@ -131,17 +131,17 @@ def solve(Input):
     Pt += [P]
     X[m] = np.sum(x*P*Delta)
     Xsq[m] = np.sum(x**2*P*Delta)
-    np.save(f"Data/tami_mean_params{Omega}{sigma}{x0}.npy", X)
-    np.save(f"Data/tami_var_params{Omega}{sigma}{x0}.npy", Xsq-X**2)
+    np.save(f"Data/mean_params{Omega}{sigma}{x0}.npy", X)
+    np.save(f"Data/var_params{Omega}{sigma}{x0}.npy", Xsq-X**2)
     return X,Xsq,Pt
 
 
     
 #function that plots the values obtained
-def plot(task,arg):
+def plot(result,arg):
     Omega, sigma, x0 = arg
     legend = [[1,1,0],[1,1,1],[1,2,0],[2,1,1],[2,2,2]]         #for which plot the universal legend is attached
-    X,Xsq,P = task                  #solutions from function solve(arg)
+    X,Xsq,P = result                  #solutions from function solve(arg)
     t = np.linspace(0,m*tau,m+1)    #timearray
     x = np.linspace(-15,15,L)       #position discretization
     

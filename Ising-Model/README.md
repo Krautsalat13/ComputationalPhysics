@@ -61,21 +61,17 @@ point.
 ## Running it
 
 ```bash
-# 2D: generate the Monte Carlo data, then plot it
-python 2D/Code_4_2D.py     # runs the simulation, writes to Data/2D/ (a few minutes)
-python IM.py               # plots the 2D observables into Plots/
-
-# 1D: tabulate then plot
-python 1D/1D.py            # writes to Data/1D/
-python 1D/plot.py          # writes to Plots/
+python ising_1d.py     # 1D: simulate and plot -> Plots/
+python ising_2d.py     # 2D: run the simulation -> Data/ (a few minutes)
+python plot_2d.py      # 2D: plot the observables against Onsager theory -> Plots/
 ```
 
-- `IM.py` — plots the 2D observables against the Onsager theory
-- `2D/Code_4_2D.py` — the 2D Monte Carlo engine (Numba-accelerated)
-- `1D/1D.py`, `1D/plot.py` — 1D engine and plotting
-- `Data/` — pre-computed results (`Data/1D/`, `Data/2D/`)
+- `ising_1d.py` — 1D Monte Carlo engine and plotting (self-contained, Numba)
+- `ising_2d.py` — 2D Monte Carlo engine (Numba)
+- `plot_2d.py` — plots the 2D observables against the exact Onsager theory
+- `Data/` — pre-computed 2D results
 - `Plots/` — output figures
 
-The data is already in `Data/`, so `IM.py` and `1D/plot.py` reproduce the figures
-without rerunning the simulations. Dependencies: `numpy`, `matplotlib`, `scipy`
-(see `requirements.txt` in the repo root).
+The 2D data is already in `Data/`, so `plot_2d.py` reproduces the 2D figures without
+rerunning the simulation; `ising_1d.py` is fast enough to just run. Dependencies:
+`numpy`, `matplotlib`, `scipy` (see `requirements.txt` in the repo root).

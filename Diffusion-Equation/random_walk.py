@@ -8,7 +8,7 @@ variance of the particle cloud grows with time. The result is compared with
 the macroscopic diffusion-equation prediction var(x) = 2*D/Delta^2 * t,
 demonstrating that the microscopic random walk reproduces the continuum law.
 
-Output: figure to ``Plots/``.  Run from the project folder:  ``python DE_2.py``
+Output: figure to ``Plots/``.  Run from the project folder:  ``python random_walk.py``
 """
 import numpy as np
 import matplotlib
@@ -49,7 +49,7 @@ pi      = np.pi
 rand    = np.random
 #set the seed
 rand.seed(1069)
-#the constants given by the exercise
+# simulation constants
 L = 1001
 n = 10000
 Delta = 0.1
@@ -105,5 +105,5 @@ plt.xlabel(r"time $t$")
 plt.grid()
 plt.legend()
 plt.ylabel(r"Var$(x)$")
-plt.savefig("Plots/task2.png", dpi=150, bbox_inches="tight")
+plt.savefig("Plots/random_walk.png", dpi=150, bbox_inches="tight")
 plt.close()

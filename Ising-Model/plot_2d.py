@@ -1,6 +1,6 @@
 """Plot the 2D Ising observables against the exact Onsager theory.
 
-Loads the Monte-Carlo results produced by ``2D/Code_4_2D.py`` from ``Data/2D/``
+Loads the Monte-Carlo results produced by ``ising_2d.py`` from ``Data/``
 (internal energy U, specific heat C and absolute magnetisation |M| per spin, for
 N = 10, 50, 100, free and periodic boundaries, N_s = 1e3 / 1e4 sweeps) and plots
 each observable against temperature, overlaying the exact infinite-lattice
@@ -12,7 +12,7 @@ the transition (|M| leaks above T_c, the specific-heat peak is finite and
 slightly shifted) instead of being sharp. The agreement well away from T_c is
 what shows the simulation is correct.
 
-Run from the project root:  ``python IM.py``
+Run from the project root:  ``python plot_2d.py``
 """
 import matplotlib
 matplotlib.use("Agg")   # non-interactive backend
@@ -54,7 +54,7 @@ def Color(color_name):
 SIM_COLORS = [Color(c) for c in ("RWTH", "Bordeaux", "Petrol", "Orange")]
 
 Tc = 2 / np.log(1 + np.sqrt(2))     # critical temperature ~ 2.2692
-T_GRID = np.linspace(0.2, 4.0, 40)  # must match T_GRID in 2D/Code_4_2D.py
+T_GRID = np.linspace(0.2, 4.0, 40)  # must match T_GRID in ising_2d.py
 T_fine = np.linspace(0.2, 4.0, 400) # smooth grid for the theory lines
 
 
@@ -89,7 +89,7 @@ CURVES = [("per", 1000, "periodic, $N_s=10^3$"),
 
 
 def load(obs, N, Ns, bc):
-    return np.load(f"Data/2D/2D_{obs}_{N}N_{Ns}NS_{bc}.npy")
+    return np.load(f"Data/2D_{obs}_{N}N_{Ns}NS_{bc}.npy")
 
 
 def make_plot(obs, N, ylabel, title, theory_fn, clip_to_data=False):
