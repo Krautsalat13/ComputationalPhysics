@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Wed May 10 13:49:29 2023
+"""1D Ising-model Monte-Carlo engine (Metropolis algorithm).
 
-@author: tamilarasan
+Simulates a 1D chain of spins with the Metropolis algorithm (natural units,
+k_B = 1, fixed seed). For each temperature it measures the internal energy and
+specific heat per spin for chain lengths N = 10, 100, 1000 and sample counts
+N_s = 1e3 / 1e4, which are then tabulated to ``Data/1D/`` and plotted by
+``plot.py``.
+
+Run from the project root:  ``python 1D/1D.py``
 """
 
 
@@ -15,8 +20,8 @@ import csv
 import os 
 os.environ["PATH"] += os.pathsep + '/Library/TeX/texbin'
 
-plt.rcParams["text.usetex"] = True
-plt.rcParams["font.family"] = "times new roman"
+plt.rcParams["text.usetex"] = False
+plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.size"] = "18"
 start = time.time()
 pi      = np.pi  
@@ -139,9 +144,9 @@ E100_10000 = np.array(E100_10000).T
 E1000_10000 = np.array(E1000_10000).T
 
 
-#np.savetxt('U10.csv', [E10_1000[0],E10_1000[1],E10_10000[0],E10_10000[1]], delimiter=';') 
-#np.savetxt('U100.csv', [E100_1000[0],E100_1000[1],E100_10000[0],E100_10000[1]], delimiter=';') 
-#np.savetxt('U1000.csv', [E1000_1000[0],E1000_1000[1],E1000_10000[0],E1000_10000[1]], delimiter=';')
+#np.savetxt('Data/1D/U10.csv', [E10_1000[0],E10_1000[1],E10_10000[0],E10_10000[1]], delimiter=';') 
+#np.savetxt('Data/1D/U100.csv', [E100_1000[0],E100_1000[1],E100_10000[0],E100_10000[1]], delimiter=';') 
+#np.savetxt('Data/1D/U1000.csv', [E1000_1000[0],E1000_1000[1],E1000_10000[0],E1000_10000[1]], delimiter=';')
 
 
 

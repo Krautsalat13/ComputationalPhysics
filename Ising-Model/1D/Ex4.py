@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Wed May 10 13:49:29 2023
+"""1D Ising-model Monte-Carlo exercise script.
 
-@author: tamilarasan
+A variant 1D Metropolis simulation (fixed seed 1069) that sweeps lattice sizes
+N = 10, 100, 1000 over a temperature range and sample counts N_s = 1e3 / 1e4.
+See ``1D.py`` for the main 1D engine and ``plot.py`` for the plotting entry point.
 """
 
 
@@ -14,8 +15,8 @@ import time as time
 import os 
 os.environ["PATH"] += os.pathsep + '/Library/TeX/texbin'
 
-plt.rcParams["text.usetex"] = True
-plt.rcParams["font.family"] = "times new roman"
+plt.rcParams["text.usetex"] = False
+plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.size"] = "18"
 start = time.time()
 pi      = np.pi  

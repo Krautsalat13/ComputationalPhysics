@@ -1,25 +1,58 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Jun  7 13:20:53 2023
+"""Simulate 1D light propagation through a glass plate with the Yee (FDTD) scheme.
 
-@author: tamilarasan
+Solves the 1D Maxwell equations on a staggered Yee grid, where the electric
+field E_z and magnetic field H_y are offset by half a cell in both space and
+time. A Gaussian-modulated sinusoidal source launches a wave that partially
+reflects and transmits at a dielectric slab (refractive index n_d = 1.46),
+with absorbing layers (conductivity sigma, magnetic loss sigma*) at the
+boundaries. The script produces snapshots of E_z(t,x) for a thin and a thick
+glass plate and illustrates the Courant stability limit by contrasting a
+stable time step (tau = 0.9*Delta) with an unstable one (tau = 1.05*Delta).
+
+Output: PNG snapshots to ``Plots/``.  Run from the project folder:
+``python EM_Waves.py``  (Numba-accelerated; the full set of runs takes a
+minute or two on first run while Numba compiles.)
 """
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")   # non-interactive backend
 import matplotlib.pyplot as plt
 
 #numba for faster code compilation
 from numba import njit, vectorize, float64
 
-#for fancier plots
-import os 
-os.environ["PATH"] += os.pathsep + '/Library/TeX/texbin'
-
-plt.rcParams["text.usetex"] = True
-plt.rcParams["font.family"] = "times new roman"
+# plain mathtext labels, no LaTeX needed
+plt.rcParams["font.family"] = "serif"
 
 
-pi      = np.pi  
+def Color(color_name):
+    """RWTH Aachen corporate colour palette, returned as a 0-1 RGB tuple."""
+    colors = {
+        "RWTH": (0, 84, 159),
+        "Schwarz": (0, 0, 0),
+        "Petrol": (0, 97, 101),
+        "Türkis": (0, 152, 161),
+        "Grün": (87, 171, 39),
+        "Maigrün": (189, 205, 0),
+        "Gelb": (255, 237, 0),
+        "Orange": (246, 168, 0),
+        "Rot": (204, 7, 30),
+        "Magenta": (227, 0, 102),
+        "Bordeaux": (161, 16, 53),
+        "Violett": (97, 33, 88),
+        "Lila": (122, 111, 172),
+        "RWTHlight": (142, 186, 229),
+        "Bordeauxlight": (205, 139, 135),
+    }
+    if color_name not in colors:
+        raise ValueError(f"Color '{color_name}' not found.")
+    r, g, b = colors[color_name]
+    return (r / 255, g / 255, b / 255)
+
+
+pi      = np.pi
 
 
 #parameters
@@ -195,7 +228,7 @@ def maxwell_plots(n_max, tau, glass, set_legend):
     setup(rf"$n={n_max}$, $\tau={savetau} \Delta$", "Position $x$", "$E_z(t,x)$")
 
     lw = 3
-    plt.plot(x, E, c="tab:blue", lw = lw)
+    plt.plot(x, E, c=Color("RWTH"), lw = lw)
     plt.scatter(x_s, 0, marker="o", color="red", label="source", s=100)
     
     plt.vlines(leftglass, -0.2, 0.2, color="tab:green", lw=lw)
@@ -218,10 +251,10 @@ def maxwell_plots(n_max, tau, glass, set_legend):
         
     plt.tight_layout()
     if glass == 1.:
-        plt.savefig(f"Plots/maxwell_tau{savetau}_thinglass_nmax{n_max}.pdf")
+        plt.savefig(f"Plots/maxwell_tau{savetau}_thinglass_nmax{n_max}.png", dpi=150, bbox_inches="tight")
     else:
-        plt.savefig(f"Plots/maxwell_tau{savetau}_thickglass_nmax{n_max}.pdf")
-    plt.show()
+        plt.savefig(f"Plots/maxwell_tau{savetau}_thickglass_nmax{n_max}.png", dpi=150, bbox_inches="tight")
+    plt.close()
 
 
 #values at which we are interested to generate plot

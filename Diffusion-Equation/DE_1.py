@@ -1,19 +1,58 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Sun Jun 18 16:23:33 2023
+"""Solve the 1D diffusion equation with a second-order product-formula scheme.
 
-@author: tamilarasan
+The density N(x,t) obeys dN/dt = D d^2N/dx^2. The spatial Laplacian is split
+into two block-diagonal operators A and B, and the time evolution over one
+step tau is approximated by the symmetric (second-order) product formula
+    exp(alpha*tau*(A+B)) ~ exp(alpha*tau*A/2) exp(alpha*tau*B) exp(alpha*tau*A/2),
+each factor acting on 2x2 blocks in closed form. The script evolves a delta
+initial condition, plots the density profile N(x,t), and checks that the
+variance grows linearly in time with the expected slope 2D/Delta^2.
+
+Outputs: variance arrays to ``Data/``, figures to ``Plots/``.
+Run from the project folder:  ``python DE_1.py``
 """
 
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")   # non-interactive backend
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 from numba import njit
 
-# For fancy plots :)
-plt.rcParams["text.usetex"] = True
-plt.rcParams["font.family"] = "times new roman"
+# plain mathtext labels, no LaTeX needed
+plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.size"]   = "27"
+
+
+def Color(color_name):
+    """RWTH Aachen corporate colour palette, returned as a 0-1 RGB tuple."""
+    colors = {
+        "RWTH": (0, 84, 159),
+        "Schwarz": (0, 0, 0),
+        "Petrol": (0, 97, 101),
+        "Türkis": (0, 152, 161),
+        "Grün": (87, 171, 39),
+        "Maigrün": (189, 205, 0),
+        "Gelb": (255, 237, 0),
+        "Orange": (246, 168, 0),
+        "Rot": (204, 7, 30),
+        "Magenta": (227, 0, 102),
+        "Bordeaux": (161, 16, 53),
+        "Violett": (97, 33, 88),
+        "Lila": (122, 111, 172),
+        "RWTHlight": (142, 186, 229),
+        "Bordeauxlight": (205, 139, 135),
+    }
+    if color_name not in colors:
+        raise ValueError(f"Color '{color_name}' not found.")
+    r, g, b = colors[color_name]
+    return (r / 255, g / 255, b / 255)
+
+
+# colours for simulation curves, RWTH and Bordeaux first
+SIM_COLORS = [Color(c) for c in ("RWTH", "Bordeaux", "Petrol", "Orange", "Grün")]
 
 def setup(title, xlabel, ylabel):
     plt.figure(figsize=(16, 9))
@@ -98,12 +137,13 @@ def plot_var(i0, m):
 
     slope = (var_arr[-1]-var_arr[0])/(t[-1]-t[0])
 
-    np.save(f"var_{i0}.npy", var_arr)
+    np.save(f"Data/var_{i0}.npy", var_arr)
     setup(" ", "time t", r"$\Delta^{-2}$ var($x(t)$)")
-    plt.plot(t, var_arr, lw=5)
+    plt.plot(t, var_arr, lw=5, color=Color("RWTH"), label="simulation")
     plt.plot(t, slope*t, lw=3, ls="--", color="black", label=f"slope = {slope:.2f}")
     plt.legend()
-    plt.savefig(f"plots/var_{i0}.pdf")
+    plt.savefig(f"Plots/var_{i0}.png", dpi=150, bbox_inches="tight")
+    plt.close()
 
 # Similar function to solve_product(m, i0)
 # Here we do plots of the array Phi vs. x 
@@ -115,20 +155,25 @@ def plot_N(m, i0):
     setup(" ", "position $x$", r"$N(x, t)$")
     plt.ylim(0,1)
     temp = Phi0
+    ci = 0
     for i in range(m+1):
         if (i)%(m//2) == 0:
-            plt.plot(x, temp, label=rf"t = {i*tau:.2f}, $\sum \Phi$ = {np.sum(temp):.3f}")
+            plt.plot(x, temp, color=SIM_COLORS[ci],
+                     label=rf"t = {i*tau:.2f}, $\sum \Phi$ = {np.sum(temp):.3f}")
+            ci += 1
         temp = Phi_A2(temp)
         temp = Phi_B(temp)
         temp = Phi_A2(temp)
     
     if i0==501:
-        plt.xlim(400, 600)
+        plt.xlim(486, 516)      # zoom on the spreading peak centred at x=501
     else:
-        plt.xlim(1, 20)
-        
+        plt.xlim(1, 14)         # boundary start: show the decaying profile
+    # drop the lowest x tick so its label does not collide with the y-axis
+    plt.gca().xaxis.set_major_locator(MaxNLocator(nbins=6, prune="lower"))
+
     plt.legend()
-    plt.savefig(f"plots/Phi_{i0}.pdf")
+    plt.savefig(f"Plots/Phi_{i0}.png", dpi=150, bbox_inches="tight")
     plt.close()
 
 # Define initial condition

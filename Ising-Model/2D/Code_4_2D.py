@@ -1,362 +1,175 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import copy
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""2D Ising-model Monte-Carlo engine (Metropolis algorithm), Numba-accelerated.
+
+Simulates the square-lattice Ising model with the Metropolis algorithm in
+natural units (k_B = 1, J = 1). For a range of temperatures it measures the
+internal energy U, the specific heat C and the absolute magnetisation |M| per
+spin, for lattice sizes N = 10, 50, 100, with free and periodic boundaries and
+a number of measurement sweeps N_s = 1e3 / 1e4.
+
+A few notes on how the measurement is done, since these matter for getting
+curves that actually follow the exact Onsager result:
+
+  * Each run starts from the fully ordered state (all spins +1). Below T_c this
+    avoids the system freezing into two domains with |M| ~ 0.5 (a metastable
+    trap that single-spin Metropolis falls into easily with free boundaries);
+    above T_c the ordered start relaxes to disorder within the equilibration
+    phase anyway.
+  * Each temperature is first equilibrated for N_EQUIL sweeps (one sweep = N*N
+    attempted flips), and only then are U, E^2 and |M| averaged over the
+    following N_s sweeps. So |M| is a proper thermal average <|M|>, not a single
+    end-of-run snapshot.
+  * The five possible Boltzmann factors are precomputed per temperature, so the
+    inner loop never calls exp().
+
+Data is written to ``Data/2D/`` as ``2D_{U,C,M}_{N}N_{Ns}NS_{free,per}.npy``.
+``IM.py`` in the project root reads those files and plots them against the exact
+theory.
+
+Run from the project root:  ``python 2D/Code_4_2D.py``  (takes a few minutes).
+"""
 import time
-import scipy as sc
-import scipy.integrate as int_
-
-start = time.time()
-
-plt.rcParams["text.usetex"] = False
-plt.rcParams["font.family"] = "times new roman"
-plt.rcParams["font.size"]   = "18"
-
-rand = np.random
-rand.seed(1556)
-
-per_bounds = False
-
-def setup(title, xlabel, ylabel):
-    plt.figure(figsize=(10,45/8))
-    plt.title(title)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.xticks()
-    plt.yticks()
-    plt.locator_params(nbins=6)
-    plt.grid()
-
-def UN_theo(N, T):
-    def k(T):
-        return 1/np.sinh(2/T)**2
-
-    def integrand(k,x):
-        return 1/np.sqrt(1 - 4*k/(1+k)**2 * np.sin(x)**2)
-
-    def U(T):
-        I = int_.quad(lambda x: integrand(k(T), x), 0, np.pi/2)[0]
-        U = -1/np.tanh(2/T)*( 1 + 2/np.pi *(2*np.tanh(2/T)**2 -1 )*I )
-        return U
-    return np.vectorize(U)(T)
-
-def CN_theo(N, T):
-    return (N-1)/N *(1/(T*np.cosh(1/T)))**2
-
-def MN_theo(N, T):
-    T_c = 2/(np.log(1+np.sqrt(2)))
-    return np.heaviside(T_c-T , 0)*np.abs((1-1/(np.sinh(2/T))**4))**(1/8)
+import numpy as np
+from numba import njit
 
 
-def energy(S):
-    N = len(S[0])
-    S1 = S[1:,]                # exclude the first row
-    S2 = S[:-1,]               # exclude the last row
-    
-    S3 = S[:,1:]               # exclude the first coloumn
-    S4 = S[:,:-1]              # exclude the last coloumn
-    
-    per_bound_contr = 0
-    if per_bounds:
-        S5 = S[0,]
-        S6 = S[N-1,]
-        
-        S7 = S[:,0]
-        S8 = S[:,N-1]
-        
-        per_bound_contr = np.sum(S5*S6) + np.sum(S7*S8)
-    
-    # Now we can express the sums via
-    E = - np.sum(S1*S2) - np.sum(S3*S4) - per_bound_contr
+# Temperature grid. Kept the same in IM.py so the data and the theory line up.
+# A bit denser than a plain coarse grid so the specific-heat peak near
+# T_c ~ 2.269 is actually resolved.
+T_GRID = np.linspace(0.2, 4.0, 40)
+
+N_EQUIL = 2000          # equilibration sweeps before measuring
+
+
+@njit(cache=True)
+def _neighbour_sum(S, N, i, j, periodic):
+    """Sum of the (up to four) nearest-neighbour spins of site (i, j)."""
+    total = 0
+    # up / down
+    if i > 0:
+        total += S[i - 1, j]
+    elif periodic:
+        total += S[N - 1, j]
+    if i < N - 1:
+        total += S[i + 1, j]
+    elif periodic:
+        total += S[0, j]
+    # left / right
+    if j > 0:
+        total += S[i, j - 1]
+    elif periodic:
+        total += S[i, N - 1]
+    if j < N - 1:
+        total += S[i, j + 1]
+    elif periodic:
+        total += S[i, 0]
+    return total
+
+
+@njit(cache=True)
+def _total_energy(S, N, periodic):
+    """Total energy E = -sum_<ij> S_i S_j, counting each bond once."""
+    E = 0
+    for i in range(N):
+        for j in range(N):
+            # right and down bonds only, so every bond is counted once
+            if j < N - 1:
+                E -= S[i, j] * S[i, j + 1]
+            elif periodic:
+                E -= S[i, j] * S[i, 0]
+            if i < N - 1:
+                E -= S[i, j] * S[i + 1, j]
+            elif periodic:
+                E -= S[i, j] * S[0, j]
     return E
 
 
-def energy_diff(S, N, i, j):
-    if not per_bounds:
-        first_term  = S[i-1,j] if i > 0 else 0
-        second_term = S[i+1,j] if i < N-1 else 0 
-        third_term  = S[i,j-1] if j > 0 else 0 
-        fourth_term = S[i,j+1] if j < N-1 else 0  
-    else:
-        first_term  = S[i-1,j]
-        second_term = S[i+1,j] if i < N-1 else S[0,j] 
-        third_term  = S[i,j-1]
-        fourth_term = S[i,j+1] if j < N-1 else S[i,0] 
-        
-    dE = 2*S[i,j]*(first_term + second_term + third_term + fourth_term)
-    return dE
+@njit(cache=True)
+def _run(N, T, n_measure, periodic, seed):
+    """One Metropolis run at temperature T. Returns U/N^2, C/N^2, <|M|>/N^2."""
+    np.random.seed(seed)
+    S = np.ones((N, N), dtype=np.int64)          # ordered start, all spins +1
 
-def spin_flip(S, N, T):
-    i, j = (rand.random(size=2)*N).astype(int)
-    r = rand.random()
+    # Precompute the only two positive energy changes' acceptance probabilities
+    # (dE can be -8, -4, 0, +4, +8; only +4 and +8 need a Boltzmann factor).
+    boltz4 = np.exp(-4.0 / T)
+    boltz8 = np.exp(-8.0 / T)
 
-    dE = energy_diff(S, N, i, j)
-    q  = np.exp(-dE/T)
-    if q > r:
-        S[i, j] *= -1
+    n_sites = N * N
 
-    return S
+    def sweep(S, E, M):
+        for _ in range(n_sites):
+            i = np.random.randint(N)
+            j = np.random.randint(N)
+            nb = _neighbour_sum(S, N, i, j, periodic)
+            dE = 2 * S[i, j] * nb
+            accept = False
+            if dE <= 0:
+                accept = True
+            elif dE == 4:
+                accept = np.random.random() < boltz4
+            else:  # dE == 8
+                accept = np.random.random() < boltz8
+            if accept:
+                M -= 2 * S[i, j]
+                S[i, j] = -S[i, j]
+                E += dE
+        return E, M
 
-    
+    # equilibration
+    E = _total_energy(S, N, periodic)
+    M = 0
+    for i in range(N):
+        for j in range(N):
+            M += S[i, j]
+    for _ in range(N_EQUIL):
+        E, M = sweep(S, E, M)
 
-def find_groundstate(T, m, N):
-    S = rand.choice([-1, 1], size=(N, N))
-    for i in range(m):
-        if i%int(m/10) == 0:
-            print(np.sum(S))
-            # plt.imshow(S)
-            # plt.show()
-            print(i/m)
-        S       = spin_flip(S, N, T)
-    
-    plt.imshow(S)
+    # measurement
+    sumE = 0.0
+    sumE2 = 0.0
+    sumM = 0.0
+    for _ in range(n_measure):
+        E, M = sweep(S, E, M)
+        sumE += E
+        sumE2 += E * E
+        sumM += abs(M)
 
-
-#find_groundstate(3, 100000, 50)
-
-
-
-
-
-def calc_U_C(N_samples, N):
-    K       = 20
-    N_wait  = int(1e5)              # N_samples
-    N_run   = int(N_samples*N**2)        # int(N_samples*N)
-    
-    T   = np.linspace(0.2, 4, K)
-    UN  = np.zeros(K)
-    CN  = np.zeros(K)
-    MN  = np.zeros(K)
-
-    # initial field
-    S = rand.choice([-1, 1], size=(N,N))
-    for j in range(N_wait):
-        S = spin_flip(S, N, T[K-1])         # reach thermal eq. in N_wait steps
-    print("passed N_wait-Loop")
-    for k in range(K):
-        #print(T[K-1-k])
-        E       = energy(S)
-        M_temp  = np.sum(S)/N**2
-
-        dE      = 0
-        dM      = 0
-        dM_temp    = 0
-        U_temp  = 0
-        C_temp  = 0
-        for i in range(N_run):
-            E           += dE
-            U_temp      += E/N_run
-            C_temp      += E**2/N_run
-            dM_temp        += dM/N**2
-            #M_temp      += np.abs(np.sum(S)/N**2)/N_run
-
-            i, j    = (rand.random(size=2)*N).astype(int)
-            r       = rand.random()
-            dE      = energy_diff(S, N, i, j)
-            q       = np.exp(-dE/T[K-1-k])
-            if q > r:
-                S[i, j] *= -1
-                dM      = 2*S[i, j]
-            else:
-                dE = 0
-                dM = 0
-        
-
-        UN[K-1-k] = U_temp/N**2
-        CN[K-1-k] = (C_temp - U_temp**2)/T[K-1-k]**2/N**2
-        MN[K-1-k] = np.abs(M_temp + dM_temp)
-        print("T, M", T[K-1-k], np.abs(M_temp + dM_t/N_run))
-    return UN, CN, MN
+    meanE = sumE / n_measure
+    meanE2 = sumE2 / n_measure
+    U = meanE / n_sites
+    C = (meanE2 - meanE * meanE) / (T * T) / n_sites
+    Mabs = sumM / n_measure / n_sites
+    return U, C, Mabs
 
 
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
+def run_curve(N, n_measure, periodic, seed=1556):
+    """Run the whole temperature sweep for one (size, N_s, boundary) setting."""
+    U = np.zeros(len(T_GRID))
+    C = np.zeros(len(T_GRID))
+    M = np.zeros(len(T_GRID))
+    for k, T in enumerate(T_GRID):
+        # a different seed per temperature keeps the runs independent
+        U[k], C[k], M[k] = _run(N, T, n_measure, periodic, seed + k)
+    return U, C, M
 
 
 def gen_data():
-    N_arr           = np.array([10])
-    #N_arr           = np.array([10, 50, 100])
-    N_samples_arr   = np.array([1000, 10000])
-    
-    def text_rep(a, b, c):
-        text = "2D_Data/2D_x_qN_zNS.npy"
-        text = text.replace("x", str(a))
-        text = text.replace("q", str(b))
-        text = text.replace("z", str(c))
-        return text
-
-    
-    for N in N_arr:
-        print("Next step -------------------------------------------")
-        for N_s in N_samples_arr:
-            UN2, CN2, MN2 = calc_U_C(N_s, N)
-            np.save(text_rep("U", N, N_s), UN2)
-            np.save(text_rep("C", N, N_s), CN2)
-            np.save(text_rep("M", N, N_s), MN2)
-
-def gen_plots():
-    show_plots  = True
-    T = np.linspace(0.2, 4, 20)
-    def load_data(a, b, c):
-        text = "2D_Data/2D_x_qN_zNS.npy"
-        text = text.replace("x", str(a))
-        text = text.replace("q", str(b))
-        text = text.replace("z", str(c))
-        return np.load(text)
-
-    U_10N_1000NS    = load_data("U", 10, 1000)
-    U_10N_10000NS   = load_data("U", 10, 10000)
-    U_50N_1000NS    = load_data("U", 50, 1000)
-    U_50N_10000NS   = load_data("U", 50, 10000)
-    U_100N_1000NS   = load_data("U", 100, 1000)
-    U_100N_10000NS  = load_data("U", 100, 10000)
-    
-    C_10N_1000NS    = load_data("C", 10, 1000)
-    C_10N_10000NS   = load_data("C", 10, 10000)
-    C_50N_1000NS    = load_data("C", 50, 1000)
-    C_50N_10000NS   = load_data("C", 50, 10000)
-    C_100N_1000NS   = load_data("C", 100, 1000)
-    C_100N_10000NS  = load_data("C", 100, 10000)
-
-    M_10N_1000NS    = load_data("M", 10, 1000)
-    M_10N_10000NS   = load_data("M", 10, 10000)
-    M_50N_1000NS    = load_data("M", 50, 1000)
-    M_50N_10000NS   = load_data("M", 50, 10000)
-    M_100N_1000NS   = load_data("M", 100, 1000)
-    M_100N_10000NS  = load_data("M", 100, 10000)
-    
-    U_list = [U_10N_1000NS, U_10N_10000NS, U_50N_1000NS, U_50N_10000NS, U_100N_1000NS, U_100N_10000NS]
-    C_list = [C_10N_1000NS, C_10N_10000NS, C_50N_1000NS, C_50N_10000NS, C_100N_1000NS, C_100N_10000NS]
-    M_list = np.abs(np.array([M_10N_1000NS, M_10N_10000NS, M_50N_1000NS, M_50N_10000NS, M_100N_1000NS, M_100N_10000NS]))
-    N_list     = [10, 10, 50, 50, 100, 100]
-    Ns_list    = [1000, 10000, 1000, 10000, 1000, 10000]
-    
-    # setup("Inner Energy per Spin", "T", "U/N")
-    # plt.plot(T,  UN_theo(10, T), color="black", ls=":", linewidth=3, label="Theory, N=10")
-    # plt.plot(T, UN_theo(100, T), color="black", ls="-.",linewidth=3, label="Theory, N=100")
-    # plt.plot(T, UN_theo(1000, T), color="black", ls="--",linewidth=3, label="Theory, N=1000")
-    # for i in range(6):
-    #     plt.plot(T, U_list[i], label=r"N={}, $N_S={}$".format(N_list[i], Ns_list[i]))
-    # plt.legend()
-    # plt.savefig("2D_Plots/1D_UN.pdf")
-    
-    # setup("Specific Heat per Spin", "T", "C/N")
-    # plt.plot(T,  CN_theo(10, T), color="black", ls=":", linewidth=3, label="Theory, N=10")
-    # plt.plot(T, CN_theo(100, T), color="black", ls="-.",linewidth=3, label="Theory, N=100")
-    # plt.plot(T, CN_theo(1000, T), color="black", ls="--",linewidth=3, label="Theory, N=1000")
-    # for i in range(6):
-    #     plt.plot(T, C_list[i], label=r"N={}, $N_S={}$".format(N_list[i], Ns_list[i]))
-    # plt.legend()
-    # plt.savefig("2D_Plots/1D_CN.pdf")
-
-    setup("Inner Energy per Spin, N=10", "T", "$U/N^2$")
-    plt.plot(T,  UN_theo(10, T), color="black", ls="--", linewidth=3, label="Theory, N=10")
-    plt.plot(T, U_list[0], label=r"$N_S={}$".format(1000))
-    plt.plot(T, U_list[1], label=r"$N_S={}$".format(10000))
-    plt.legend()
-    plt.savefig("2D_Plots/2D_UN_10.pdf")
-    if not show_plots:
-        plt.close()
-
-    setup("Inner Energy per Spin, N=50", "T", "$U/N^2$")
-    plt.plot(T,  UN_theo(50, T), color="black", ls="--", linewidth=3, label="Theory, N=50")
-    plt.plot(T, U_list[2], label=r"$N_S={}$".format(1000))
-    plt.plot(T, U_list[3], label=r"$N_S={}$".format(10000))
-    plt.legend()
-    plt.savefig("2D_Plots/2D_UN_50.pdf")
-    if not show_plots:
-        plt.close()
+    sizes = [10, 50, 100]
+    samples = [1000, 10000]
+    boundaries = [("per", True), ("free", False)]
+    for N in sizes:
+        for n_measure in samples:
+            for name, periodic in boundaries:
+                t0 = time.time()
+                U, C, M = run_curve(N, n_measure, periodic)
+                np.save(f"Data/2D/2D_U_{N}N_{n_measure}NS_{name}.npy", U)
+                np.save(f"Data/2D/2D_C_{N}N_{n_measure}NS_{name}.npy", C)
+                np.save(f"Data/2D/2D_M_{N}N_{n_measure}NS_{name}.npy", M)
+                print(f"N={N:3d}  Ns={n_measure:5d}  {name:4s}  "
+                      f"({time.time()-t0:.1f}s)")
 
 
-    setup("Inner Energy per Spin, N=100", "T", "$U/N^2$")
-    plt.plot(T,  UN_theo(100, T), color="black", ls="--", linewidth=3, label="Theory, N=100")
-    plt.plot(T, U_list[4], label=r"$N_S={}$".format(1000))
-    plt.plot(T, U_list[5], label=r"$N_S={}$".format(10000))
-    plt.legend()
-    plt.savefig("2D_Plots/2D_UN_100.pdf")
-    if not show_plots:
-        plt.close()
-
-   
-    
-    
-    setup("Specific Heat per Spin, N=10", "T", "$C/N^2$")
-    plt.plot(T,  CN_theo(10, T), color="black", ls="--", linewidth=3, label="Theory, N=10")
-    plt.plot(T, C_list[0], label=r"$N_S={}$".format(1000))
-    plt.plot(T, C_list[1], label=r"$N_S={}$".format(10000))
-    plt.legend()
-    plt.savefig("2D_Plots/2D_CN_10.pdf")
-    if not show_plots:
-        plt.close()
-
-
-    setup("Specific Heat per Spin, N=50", "T", "$C/N^2$")
-    plt.plot(T,  CN_theo(50, T), color="black", ls="--", linewidth=3, label="Theory, N=50")
-    plt.plot(T, C_list[2], label=r"$N_S={}$".format(1000))
-    plt.plot(T, C_list[3], label=r"$N_S={}$".format(10000))
-    plt.legend()
-    plt.savefig("2D_Plots/2D_CN_50.pdf")
-    if not show_plots:
-        plt.close()
-
-
-    setup("Specific Heat per Spin, N=100", "T", "$C/N^2$")
-    plt.plot(T,  CN_theo(100, T), color="black", ls="--", linewidth=3, label="Theory, N=100")
-    plt.plot(T, C_list[4], label=r"$N_S={}$".format(1000))
-    plt.plot(T, C_list[5], label=r"$N_S={}$".format(10000))
-    plt.legend()
-    plt.savefig("2D_Plots/2D_CN_100.pdf")
-    if not show_plots:
-        plt.close()
-
-
-    
-    
-    setup("absolute Magnetization per Spin, N=10", "T", "$M/N^2$")
-    #plt.plot(T,  MN_theo(10, T), color="black", ls="--", linewidth=3, label="Theory, N=10")
-    plt.plot(T, M_list[0], label=r"$N_S={}$".format(1000))
-    plt.plot(T, M_list[1], label=r"$N_S={}$".format(10000))
-    plt.legend()
-    plt.savefig("2D_Plots/2D_MN_10.pdf")
-    if not show_plots:
-        plt.close()
-
-
-    setup("absolute Magnetization per Spin, N=50", "T", "$M/N^2$")
-    plt.plot(T,  MN_theo(50, T), color="black", ls="--", linewidth=3, label="Theory, N=50")
-    plt.plot(T, M_list[2], label=r"$N_S={}$".format(1000))
-    plt.plot(T, M_list[3], label=r"$N_S={}$".format(10000))
-    plt.legend()
-    plt.savefig("2D_Plots/2D_MN_50.pdf")
-    if not show_plots:
-        plt.close()
-
-
-    setup("absolute Magnetization per Spin, N=100", "T", "$M/N^2$")
-    plt.plot(T,  MN_theo(100, T), color="black", ls="--", linewidth=3, label="Theory, N=100")
-    plt.plot(T, M_list[4], label=r"$N_S={}$".format(1000))
-    plt.plot(T, M_list[5], label=r"$N_S={}$".format(10000))
-    plt.legend()
-    plt.savefig("2D_Plots/2D_MN_100.pdf")
-    if not show_plots:
-        plt.close()
-
-
-
-gen_data()
-# gen_plots()
-
-
-end = time.time()
-print(end-start)
+if __name__ == "__main__":
+    gen_data()

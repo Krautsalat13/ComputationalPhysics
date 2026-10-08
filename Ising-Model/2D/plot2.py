@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Wed May 17 13:48:19 2023
+"""Plot 2D Ising observables from the CSV results in ``Data/2D/``.
 
-@author: tamilarasan
+Reads the magnetisation / energy / heat-capacity CSVs written by ``2D.py`` and
+plots them against temperature. ``IM.py`` (in the project root) is the main 2D
+plotting script; this one plots the sizes separately.
+
+Run from the project root:  ``python 2D/plot2.py``
 """
 
 import numpy as np
@@ -14,8 +17,8 @@ import csv
 import os 
 #os.environ["PATH"] += os.pathsep + '/Library/TeX/texbin'
 
-plt.rcParams["text.usetex"] = True
-plt.rcParams["font.family"] = "times new roman"
+plt.rcParams["text.usetex"] = False
+plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.size"] = "18"
 
 
@@ -23,7 +26,7 @@ T = np.linspace(0.2,4.2,21)
 N = np.array([10,50,100])
 N = N[2]
 
-a, b, c= np.loadtxt('2d100_1000.csv', delimiter=';') #MUC
+a, b, c= np.loadtxt('Data/2D/2d100_1000.csv', delimiter=';') #MUC
 
 U1000_1000 = np.array(b[::-1])
 M1000_1000 = np.array(a[::-1])
@@ -42,5 +45,5 @@ plt.plot(T,M1000_1000/N**2)
 plt.plot(T,M2dvec(T))  
 
 
-a10, b10, c10= np.loadtxt('2d10_1000.csv', delimiter=';') #MUC
-a, b, c= np.loadtxt('2d10_10000.csv', delimiter=';') #MUC
+a10, b10, c10= np.loadtxt('Data/2D/2d10_1000.csv', delimiter=';') #MUC
+a, b, c= np.loadtxt('Data/2D/2d10_10000.csv', delimiter=';') #MUC

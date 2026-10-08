@@ -1,26 +1,64 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jul 14 15:46:58 2023
+"""Time-dependent Schrodinger equation for the 1D quantum harmonic oscillator.
 
-@author: tamilarasan
+Evolves a Gaussian wave packet in a harmonic potential V(x) = Omega^2 x^2 / 2
+(units m = hbar = 1) using a matrix decomposition together with the
+second-order product formula for the kinetic part. For several parameter sets
+(frequency Omega, initial width sigma, initial centre x0) it tracks the mean
+position <x(t)> and the variance Var(x(t)), and compares them with the exact
+analytic expectation values. Runs are distributed over CPU cores with
+``multiprocessing``; this is the expensive step.
+
+The mean/variance arrays are written to ``Data/`` and the figures to
+``Plots/``. To just plot already-stored snapshots, use
+``plot_results.py`` instead.
+
+Run from the project folder:  ``python QHO.py``
 """
 #import important modules
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")   # non-interactive backend
 import matplotlib.pyplot as plt
 from numba import njit, vectorize, float64
 
 from multiprocessing import Pool
 
-#some plotting arguments for better visualization
-import os 
-os.environ["PATH"] += os.pathsep + '/Library/TeX/texbin'
-
-plt.rcParams["text.usetex"] = True
-plt.rcParams["font.family"] = "times new roman"
+# plain mathtext labels, no LaTeX needed
+plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.size"] = "18"
 
-pi      = np.pi  
+
+def Color(color_name):
+    """RWTH Aachen corporate colour palette, returned as a 0-1 RGB tuple."""
+    colors = {
+        "RWTH": (0, 84, 159),
+        "Schwarz": (0, 0, 0),
+        "Petrol": (0, 97, 101),
+        "Türkis": (0, 152, 161),
+        "Grün": (87, 171, 39),
+        "Maigrün": (189, 205, 0),
+        "Gelb": (255, 237, 0),
+        "Orange": (246, 168, 0),
+        "Rot": (204, 7, 30),
+        "Magenta": (227, 0, 102),
+        "Bordeaux": (161, 16, 53),
+        "Violett": (97, 33, 88),
+        "Lila": (122, 111, 172),
+        "RWTHlight": (142, 186, 229),
+        "Bordeauxlight": (205, 139, 135),
+    }
+    if color_name not in colors:
+        raise ValueError(f"Color '{color_name}' not found.")
+    r, g, b = colors[color_name]
+    return (r / 255, g / 255, b / 255)
+
+
+SIM_COLORS = [Color(c) for c in
+              ("RWTH", "Bordeaux", "Petrol", "Orange", "Grün", "Violett")]
+
+pi      = np.pi
 
 
 #parameters for the discretizations
@@ -93,8 +131,8 @@ def solve(Input):
     Pt += [P]
     X[m] = np.sum(x*P*Delta)
     Xsq[m] = np.sum(x**2*P*Delta)
-    np.save(f"DataNew/tami_mean_params{Omega}{sigma}{x0}.npy", X)
-    np.save(f"DataNew/tami_var_params{Omega}{sigma}{x0}.npy", Xsq-X**2)
+    np.save(f"Data/tami_mean_params{Omega}{sigma}{x0}.npy", X)
+    np.save(f"Data/tami_var_params{Omega}{sigma}{x0}.npy", Xsq-X**2)
     return X,Xsq,Pt
 
 
@@ -114,33 +152,33 @@ def plot(task,arg):
     
     #plotting the averages (both theory and simulation)
     plt.grid()
-    plt.plot(t, X, label =r" $\langle x(t)_{sim} \rangle$", color ="tab:cyan", lw = 2.5)
+    plt.plot(t, X, label =r" $\langle x(t)_{sim} \rangle$", color =Color("RWTH"), lw = 2.5)
     plt.plot(t, xth, label = r"$\langle x(t)_{theo} \rangle$", color = "black", ls = "-.", lw = 1.5)
-    plt.plot(t, Xsq-X**2,label =r"$Var(x_{sim})$", color ="tab:orange", lw = 2.5)
+    plt.plot(t, Xsq-X**2,label =r"$Var(x_{sim})$", color =Color("Bordeaux"), lw = 2.5)
     plt.plot(t, xsqth-xth**2, label = r"$Var(x_{theo})$", color = "black",ls = "--", lw = 1.5)
     plt.xlabel("t")
     plt.ylabel("Average and Variance")
     plt.title(r"$\Omega$ = "+str(Omega)+r", $\sigma$ = "+str(sigma)+r", $x_0$ = "+str(x0))
     if arg in legend:
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.savefig(f"plot/Omega{Omega}_sigma{sigma}_x0{x0}_Averages.pdf",bbox_inches='tight')
-    plt.show()
+    plt.savefig(f"Plots/Omega{Omega}_sigma{sigma}_x0{x0}_Averages.png", dpi=150, bbox_inches="tight")
+    plt.close()
     
     #plotting the differences between theory and simulation
     plt.grid()
-    plt.plot(t, X-xth, label = r"$\langle x(t)_{sim} \rangle - \langle x(t)_{theo} \rangle$", color = "tab:cyan", lw = 2.5)
-    plt.plot(t, Xsq-X**2 - (xsqth-xth**2),label =r"$Var(x_{sim}) -Var(x_{theo})$", color ="tab:orange", lw = 2.5)
+    plt.plot(t, X-xth, label = r"$\langle x(t)_{sim} \rangle - \langle x(t)_{theo} \rangle$", color = Color("RWTH"), lw = 2.5)
+    plt.plot(t, Xsq-X**2 - (xsqth-xth**2),label =r"$Var(x_{sim}) -Var(x_{theo})$", color =Color("Bordeaux"), lw = 2.5)
     plt.xlabel("t")
     plt.ylabel("Difference of Average and Variance")
     plt.title(r"$\Omega$ = "+str(Omega)+r", $\sigma$ = "+str(sigma)+r", $x_0$ = "+str(x0))
     if arg in legend:
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.savefig(f"plot/Omega{Omega}_sigma{sigma}_x0{x0}_Averages_expect.pdf",bbox_inches='tight')
-    plt.show()
+    plt.savefig(f"Plots/Omega{Omega}_sigma{sigma}_x0{x0}_Averages_expect.png", dpi=150, bbox_inches="tight")
+    plt.close()
     
     #plotting the probability density from -5 to 5
     for i in range(6):
-        plt.plot(x,P[i]*Delta, label = "t = "+str(tprint[i]))
+        plt.plot(x,P[i]*Delta, color=SIM_COLORS[i], label = "t = "+str(tprint[i]))
     plt.title(r"$\Omega$ = "+str(Omega)+r", $\sigma$ = "+str(sigma)+r", $x_0$ = "+str(x0))
     plt.xlabel("x")
     plt.xlim(-5,5)
@@ -148,12 +186,12 @@ def plot(task,arg):
     plt.ylabel(r"Probability $|\Phi|^2\cdot \Delta$")
     if arg in legend:
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.savefig(f"plot/Omega{Omega}_sigma{sigma}_x0{x0}_Probabilities.pdf",bbox_inches='tight')
-    plt.show()
+    plt.savefig(f"Plots/Omega{Omega}_sigma{sigma}_x0{x0}_Probabilities.png", dpi=150, bbox_inches="tight")
+    plt.close()
     
     #plotting the probability density from -15 to 15
     for i in range(6):
-        plt.plot(x,P[i]*Delta, label = "t = "+str(tprint[i]))
+        plt.plot(x,P[i]*Delta, color=SIM_COLORS[i], label = "t = "+str(tprint[i]))
     plt.title(r"$\Omega$ = "+str(Omega)+r", $\sigma$ = "+str(sigma)+r", $x_0$ = "+str(x0))
     plt.xlabel("x")
     plt.xlim(-15,15)
@@ -161,8 +199,8 @@ def plot(task,arg):
     plt.ylabel(r"Probability $|\Phi|^2\cdot \Delta$")
     if arg in legend:
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.savefig(f"plot/Omega{Omega}_sigma{sigma}_x0{x0}_Probabilities_full.pdf",bbox_inches='tight')
-    plt.show()
+    plt.savefig(f"Plots/Omega{Omega}_sigma{sigma}_x0{x0}_Probabilities_full.png", dpi=150, bbox_inches="tight")
+    plt.close()
     return 0
 
 #multiprocessing to calculate all the initial values at the same time

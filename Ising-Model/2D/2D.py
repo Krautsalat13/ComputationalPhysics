@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Sun May 14 16:35:58 2023
+"""2D Ising-model Monte-Carlo (Metropolis) - standalone/exploratory script.
 
-@author: tamilarasan
+Simulates the square-lattice Ising model with the Metropolis algorithm and
+writes the energy/heat-capacity/magnetisation results to CSV in ``Data/2D/``.
+``Code_4_2D.py`` is the fuller engine (multiple sizes, boundary conditions and
+the exact Onsager comparison); ``plot2.py`` plots the CSV produced here.
+
+Run from the project root:  ``python 2D/2D.py``
 """
 
 import numpy as np
@@ -14,8 +18,8 @@ import scipy as sp
 import os 
 os.environ["PATH"] += os.pathsep + '/Library/TeX/texbin'
 
-plt.rcParams["text.usetex"] = True
-plt.rcParams["font.family"] = "times new roman"
+plt.rcParams["text.usetex"] = False
+plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.size"] = "18"
 start = time.time()
 pi      = np.pi  
@@ -119,9 +123,9 @@ for i in range(len(T)):
     """
 
     
-np.savetxt('2d10free_1000.csv', [np.array(M10_1000),np.array(U10_1000),np.array(C10_1000)], delimiter=';')
+np.savetxt('Data/2D/2d10free_1000.csv', [np.array(M10_1000),np.array(U10_1000),np.array(C10_1000)], delimiter=';')
 
-#np.savetxt('2d100free_10000.csv', [np.array(M10_10000),np.array(U10_10000),np.array(C10_10000)], delimiter=';')
+#np.savetxt('Data/2D/2d100free_10000.csv', [np.array(M10_10000),np.array(U10_10000),np.array(C10_10000)], delimiter=';')
 
 def M2d(T):
     Tc = 2/(np.log(1+np.sqrt(2)))
